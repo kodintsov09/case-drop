@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Case {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  price    Int
+  image    String
+  isActive Boolean    @default(true)
+  items    CaseItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Skin {
+  id              String          @id @default(cuid())
+  externalId      String?         @unique
+  name            String
+  weaponType      String
+  rarity          String
+  price           Int
+  image           String
+  caseItems       CaseItem[]
+  inventoryItems  InventoryItem[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model CaseItem {
+  id         String @id @default(cuid())
+  caseId     String
+  skinId     String
+  dropChance Float
+  case       Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  skin       Skin   @relation(fields: [skinId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, skinId])
+}
+
+model User {
+  id                 String                @id @default(cuid())
+  steamId            String?               @unique
+  username           String                @unique
+  displayName        String
+  role               String                @default("user")
+  balance            Int                   @default(5000)
+  luckModifier       Float                 @default(1.0)
+  avatar             String?
+  inventoryItems     InventoryItem[]
+  liveDrops          LiveDrop[]
+  caseOpenings       CaseOpening[]
+  promoRedemptions   PromocodeRedemption[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  userId    String
+  skinId    String
+  status    String   @default("AVAILABLE")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skin      Skin     @relation(fields: [skinId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model LiveDrop {
+  id          String   @id @default(cuid())
+  userId      String
+  skinId      String
+  username    String
+  displayName String
+  avatar      String?
+  skinName    String
+  weaponLabel String
+  rarity      String
+  price       Int
+  image       String
+  weaponType  String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model CaseOpening {
+  id              String   @id @default(cuid())
+  userId          String
+  caseId          String
+  skinId          String
+  inventoryItemId String?
+  casePrice       Int
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Promocode {
+  id          String                @id @default(cuid())
+  code        String                @unique
+  bonusType   String
+  bonusValue  Float
+  maxUses     Int
+  usedCount   Int                   @default(0)
+  isActive    Boolean               @default(true)
+  redemptions PromocodeRedemption[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model PromocodeRedemption {
+  id          String    @id @default(cuid())
+  userId      String
+  promocodeId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promocode   Promocode @relation(fields: [promocodeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, promocodeId])
+}
